@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: example-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: ipr
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgres_data/MC1/:/var/lib/postgresql/data
+
+  mc1:
+    container_name: mc1
+    build:
+      context: ./MC1
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: always
+    depends_on:
+      - postgres
+
+  mc2:
+    container_name: mc2
+    build:
+      context: ./MC2
+      dockerfile: Dockerfile
+
+    restart: always
+
+  mc3:
+    container_name: mc3
+    build:
+      context: ./MC3
+      dockerfile: Dockerfile
+
+    restart: always
