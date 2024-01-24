@@ -14,6 +14,6 @@ RUN poetry install
 EXPOSE 8000
 
 COPY ./ $APP_HOME
-ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app/src"
+ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app/apps"
 
 CMD ["/bin/sh","/usr/src/app/app-entrypoint.sh"]

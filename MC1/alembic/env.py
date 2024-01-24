@@ -7,8 +7,8 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from src import models
-from src.config import DATABASE_URL
+from apps import models
+from apps.config import DATABASE_URL
 
 sys.path.append(os.path.join(sys.path[0], "src"))
 
