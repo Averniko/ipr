@@ -3,12 +3,12 @@ from logging.config import dictConfig
 from fastapi import FastAPI
 
 from core.config import LOGGER_CONFIG
-from routers import router
+from routers import router as ws_router
 
 dictConfig(LOGGER_CONFIG)
 
 app = FastAPI(
-    title="MC1"
+    title="MC2"
 )
 
-app.include_router(router)
+app.include_router(ws_router)

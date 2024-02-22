@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  mc1:
+    container_name: mc1
+    build:
+      context: ./MC1
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - ipr-network
+
+  mc2:
+    container_name: mc2
+    build:
+      context: ./MC2
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - ipr-network
+
+  mc3:
+    container_name: mc3
+    build:
+      context: ./MC3
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - ipr-network
+
+networks:
+  ipr-network:
+    driver: bridge

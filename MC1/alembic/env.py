@@ -4,13 +4,13 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
+from core.config import DATABASE_URL
+from db import models
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from apps import models
-from apps.config import DATABASE_URL
 
-sys.path.append(os.path.join(sys.path[0], "src"))
+sys.path.append(os.path.join(sys.path[0], "apps"))
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

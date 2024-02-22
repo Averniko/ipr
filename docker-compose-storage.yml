@@ -1,32 +1,20 @@
 version: "3.9"
+name: "ipr-storage"
 
 services:
-  mc1:
-    container_name: mc1
-    build:
-      context: ./MC1
-      dockerfile: Dockerfile
+  postgres:
+    image: postgres:latest
+    container_name: example-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: ipr
     ports:
-      - "8000:8000"
-    restart: always
-    depends_on:
-      - postgres
-
-  mc2:
-    container_name: mc2
-    build:
-      context: ./MC2
-      dockerfile: Dockerfile
-
-    restart: always
-
-  mc3:
-    container_name: mc3
-    build:
-      context: ./MC3
-      dockerfile: Dockerfile
-
-    restart: always
+      - "5433:5432"
+    volumes:
+      - ./postgres_data/MC1/:/var/lib/postgresql/data
+    networks:
+      - ipr_ipr-network
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -35,6 +23,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - 22181:2181
+    networks:
+      - ipr_ipr-network
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -50,6 +40,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+    networks:
+      - ipr_ipr-network
 
   kafka-ui:
     image: provectuslabs/kafka-ui
@@ -64,3 +56,9 @@ services:
     links:
       - kafka
       - zookeeper
+    networks:
+      - ipr_ipr-network
+
+networks:
+  ipr_ipr-network:
+    external: true
