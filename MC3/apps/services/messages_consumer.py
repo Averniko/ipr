@@ -23,6 +23,7 @@ class MessagesConsumer:
 
     async def consume(self):
         await self._consumer.start()
+        logger.info(f"Consumer started")
         while True:
             async for message in self._receive_messages():
                 message.mc3_timestamp = datetime.now()

@@ -15,6 +15,7 @@ SECRET_KEY: str = os.environ.get("SECRET_KEY")
 DATABASE_URL: str = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 SHOW_DB_LOG: bool = bool(strtobool(os.environ.get("SHOW_DB_LOG", "False")))
 MC2_WS: str = os.environ.get("MC2_WS")
+INTERVAL: float = float(os.environ.get("INTERVAL", 1))
 
 LOGGER_CONFIG: dict[str, any] = {
     "version": 1,
