@@ -2,6 +2,8 @@ import atexit
 import logging
 
 import httpx
+from opentelemetry.context import Context
+from opentelemetry.propagate import inject
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +14,14 @@ class APIClient:
         self._client = httpx.AsyncClient()
         atexit.register(self._client.aclose)
 
-    async def send_message(self, message: dict) -> None:
+    async def send_message(self, message: dict, context: Context = None) -> None:
+        headers = {}
+        inject(headers, context=context)
         try:
             resp = await self._client.post(
                 url=f"{self.base_url}/end",
                 json=message,
+                headers=headers
             )
 
             resp.raise_for_status()

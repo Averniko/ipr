@@ -14,6 +14,7 @@ class MessagesManager:
     @staticmethod
     async def create_message(session: AsyncSession, session_id: int) -> MessageBase:
         message_id = await database.get_next_message_id(session)
+        await session.commit()
         message = MessageBase(
             id=message_id,
             session_id=session_id,

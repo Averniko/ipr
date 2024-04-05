@@ -1,6 +1,8 @@
 import json
 
 import websockets
+from opentelemetry.context import Context
+from opentelemetry.propagate import inject
 from websockets import ConnectionClosedError
 
 from schemas import MessageBase
@@ -18,7 +20,10 @@ class WSManager:
         except (AttributeError, ConnectionClosedError):
             self._ws = await websockets.connect(self.url)
 
-    async def send(self, message: MessageBase):
+    async def send(self, message: MessageBase, context: Context = None):
         await self._connect()
-        message = json.dumps(message.model_dump(mode="json"))
+
+        data = message.model_dump(mode="json")
+        inject(data, context)
+        message = json.dumps(data)
         await self._ws.send(message)

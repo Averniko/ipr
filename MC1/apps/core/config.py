@@ -2,6 +2,13 @@ import os
 from distutils.util import strtobool
 
 from dotenv import load_dotenv
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+    OTLPSpanExporter as OTLPSpanExporterHTTP,
+)
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 load_dotenv()
 
@@ -16,6 +23,22 @@ DATABASE_URL: str = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_POR
 SHOW_DB_LOG: bool = bool(strtobool(os.environ.get("SHOW_DB_LOG", "False")))
 MC2_WS: str = os.environ.get("MC2_WS")
 INTERVAL: float = float(os.environ.get("INTERVAL", 1))
+WORKERS_LIMIT: int = int(os.environ.get("WORKERS_LIMIT", 20))
+OTLP_HTTP_ENDPOINT = os.environ.get(
+    "OTLP_HTTP_ENDPOINT", "http://otel-collector:4318/v1/traces"
+)
+
+resource = Resource.create(attributes={
+    "service.name": "MS1",
+})
+
+provider = TracerProvider(resource=resource)
+
+trace.set_tracer_provider(provider)
+
+provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporterHTTP(endpoint=OTLP_HTTP_ENDPOINT))
+)
 
 LOGGER_CONFIG: dict[str, any] = {
     "version": 1,
@@ -34,6 +57,7 @@ LOGGER_CONFIG: dict[str, any] = {
         },
     },
     "loggers": {
-        "root": {"handlers": ["default"], "level": "DEBUG" if DEBUG else "INFO", "propagate": False},
+        "root": {"handlers": ["default"], "level": "DEBUG" if DEBUG else "WARNING", "propagate": False},
+        "uvicorn.access": {"handlers": ["default"], "level": "DEBUG" if DEBUG else "WARNING", "propagate": False},
     },
 }
