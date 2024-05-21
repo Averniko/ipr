@@ -60,44 +60,50 @@ services:
       - zookeeper
 
   jaeger-collector:
-    image: jaegertracing/jaeger-collector:1.52.0
+    image: jaegertracing/jaeger-collector:1.56.0
     command:
-      - "--cassandra.keyspace=jaeger_v1_dc1"
-      - "--cassandra.servers=cassandra"
+      - "--es.server-urls=http://elastic-search:9200"
+      - "--es.num-shards=1"
+      - "--es.num-replicas=0"
       - "--collector.otlp.enabled=true"
-    hostname: jaeger-collector
     environment:
-      - SAMPLING_CONFIG_TYPE=adaptive
+      - SPAN_STORAGE_TYPE=elasticsearch
     ports:
       - "4317" # accept OpenTelemetry Protocol (OTLP) over gRPC
       - "4318" # accept OpenTelemetry Protocol (OTLP) over HTTP
       - "14250" # accept model.proto
-    restart: on-failure
+    restart: always
+    hostname: jaeger-collector
     depends_on:
-      - cassandra-schema
+      - elasticsearch
     networks:
       - ipr_ipr-network
 
-  cassandra:
-    image: cassandra:4.1.2
-    hostname: cassandra
+  elasticsearch:
+    image: elasticsearch:8.13.0
+    container_name: elasticsearch
+    environment:
+      - cluster.name=elasticsearch
+      - node.name=elasticsearch
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    hostname: elastic-search
     networks:
       - ipr_ipr-network
-
-  cassandra-schema:
-    image: jaegertracing/jaeger-cassandra-schema:1.52.0
-    depends_on:
-      - cassandra
-    networks:
-      - ipr_ipr-network
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
 
   jaeger-query:
-    image: jaegertracing/jaeger-query:1.52.0
+    image: jaegertracing/jaeger-query:1.56.0
     environment:
       - METRICS_STORAGE_TYPE=prometheus
+      - SPAN_STORAGE_TYPE=elasticsearch
     command:
-      - "--cassandra.keyspace=jaeger_v1_dc1"
-      - "--cassandra.servers=cassandra"
+      - "--es.server-urls=http://elastic-search:9200"
       - "--prometheus.query.support-spanmetrics-connector=true"
       - "--prometheus.server-url=http://prometheus:9090"
       - "--prometheus.query.normalize-duration=true"
@@ -105,9 +111,7 @@ services:
     ports:
       - "16686:16686"
       - "16687:16687"
-    restart: on-failure
-    depends_on:
-      - cassandra-schema
+    restart: always
     hostname: jaeger-query
     networks:
       - ipr_ipr-network
@@ -140,6 +144,10 @@ services:
     hostname: prometheus
     networks:
       - ipr_ipr-network
+
+volumes:
+  elastic-data:
+    driver: local
 
 networks:
   ipr_ipr-network:

@@ -9,15 +9,12 @@ services:
     ports:
       - "8000:8000"
     restart: always
-    depends_on:
-      - postgres
 
   mc2:
     container_name: mc2
     build:
       context: ./MC2
       dockerfile: Dockerfile
-
     restart: always
 
   mc3:
@@ -25,11 +22,24 @@ services:
     build:
       context: ./MC3
       dockerfile: Dockerfile
-
     restart: always
+
+  postgres:
+    image: postgres:latest
+    container_name: example-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: ipr
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgres_data/MC1/:/var/lib/postgresql/data
+    hostname: postgres
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -64,3 +74,83 @@ services:
     links:
       - kafka
       - zookeeper
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector:1.56.0
+    command:
+      - "--es.server-urls=http://elastic-search:9200"
+      - "--es.num-shards=1"
+      - "--es.num-replicas=0"
+      - "--collector.otlp.enabled=true"
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+    ports:
+      - "4317" # accept OpenTelemetry Protocol (OTLP) over gRPC
+      - "4318" # accept OpenTelemetry Protocol (OTLP) over HTTP
+      - "14250" # accept model.proto
+    restart: always
+    hostname: jaeger-collector
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: elasticsearch:8.13.0
+    container_name: elasticsearch
+    environment:
+      - cluster.name=elasticsearch
+      - node.name=elasticsearch
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    hostname: elastic-search
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query:1.56.0
+    environment:
+      - METRICS_STORAGE_TYPE=prometheus
+      - SPAN_STORAGE_TYPE=elasticsearch
+    command:
+      - "--es.server-urls=http://elastic-search:9200"
+      - "--prometheus.query.support-spanmetrics-connector=true"
+      - "--prometheus.server-url=http://prometheus:9090"
+      - "--prometheus.query.normalize-duration=true"
+      - "--prometheus.query.normalize-calls=true"
+    ports:
+      - "16686:16686"
+      - "16687:16687"
+    restart: always
+    hostname: jaeger-query
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    command:
+      - "--config=/conf/config.yaml"
+    volumes:
+      - ./etc/otel-collector-config.yaml:/conf/config.yaml
+    ports:
+      - "4317" # OTLP gRPC receiver
+      - "4318" # OTLP http receiver
+      - "8889" # Prometheus metrics exporter
+    restart: on-failure
+    depends_on:
+      - jaeger-collector
+    hostname: otel-collector
+
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./etc/prometheus.yml:/workspace/prometheus.yml
+    command:
+      - --config.file=/workspace/prometheus.yml
+    hostname: prometheus
+
+volumes:
+  elastic-data:
+    driver: local

@@ -3,6 +3,7 @@ import logging
 from asyncio import get_event_loop
 from logging.config import dictConfig
 
+from aiokafka.errors import KafkaConnectionError
 from fastapi import FastAPI
 
 from core.config import LOGGER_CONFIG
@@ -19,4 +20,15 @@ app = FastAPI(
 messages_consumer = MessagesConsumer()
 
 event_loop = get_event_loop()
-asyncio.create_task(messages_consumer.consume())
+
+
+async def consume_messages():
+    while True:
+        try:
+            await messages_consumer.consume()
+        except KafkaConnectionError as exception:
+            logger.exception(exception)
+            await asyncio.sleep(1)
+
+
+asyncio.create_task(consume_messages())
